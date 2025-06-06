@@ -1,0 +1,2 @@
+# Testing framework for running the test suite
+pytest>=8.2.2, <9.0.0
