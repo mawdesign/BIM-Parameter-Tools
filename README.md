@@ -14,12 +14,15 @@ improving data consistency for BIM managers, coordinators, and developers.
 * **IFC Short GUID to Revit Long GUID Converter:**
   * A Python function that intelligently converts the compressed, URL-safe Base64 GUID format used by IFC into the standard 32-digit
     hexadecimal GUID format required for Revit Shared Parameter files.
-  * Automatically handles formatting artifacts, such as hyphens or underscores inserted by document software during line wrapping.
+  * Automatically handles formatting artifacts, such as hyphens or carriage returns inserted by document software during line wrapping.
+* **Excel GUID Processor:**
+  *A command-line tool that reads an Excel file, processes a "GUID" column in each sheet, and creates a new file with "IFC-GUID" 
+    and "MS-GUID" columns. Items in the "Name" column have inline carriage returns removed. All other data is preserved.
 
 ### Planned Features (Roadmap)
 We welcome contributions to help build out the following tools:
 
-* [ ] **Long GUID to Short GUID Converter:** A tool to perform the reverse conversion, from a standard Revit GUID to a compressed
+* [ ] **Long GUID to Short GUID Converter:** A tool to batch perform the reverse conversion, from a standard Revit GUID to a compressed
       IFC-style GUID.
 * [ ] **Excel to Revit Shared Parameter File Generator:** A script to convert a standardized Excel template of parameter definitions
       into a valid Revit Shared Parameter .txt file.
@@ -50,7 +53,18 @@ pip install -r requirements.txt
 ```
 
 ## Usage
-### GUID Converter
+1. **Excel GUID Processor (Command Line)**
+This is the easiest way to process a full Excel file. Open your terminal, navigate to the project directory, and run the script with your 
+input and (optionally) output file paths.
+
+### Command:
+```bash
+python excel_guid_processor.py "path/to/your/input.xlsx" "path/for/your/output.xlsx"
+```
+
+The script will process every sheet in the input file that contains a "GUID" column and save a new, processed file to the output path.
+
+1. **GUID Converter (for scripting)**
 The primary function for GUID conversion is `process_and_convert_guid` located in the `guid_converter.py` 
 script. It is designed to handle short GUIDs that have been split across two lines in a document.
 
@@ -85,14 +99,8 @@ pytest
 You should see a report indicating that all tests have passed.
 
 ## Contributing
-Contributions are welcome and greatly appreciated! This project is intended to be a community-driven resource.
-
-If you would like to contribute, please follow these steps:
-1. **Fork the repository**.
-1. **Create a new branch** for your feature or bug fix (`git checkout -b feature/AmazingNewTool`).
-1. **Write your code**. Please include tests for any new functionality.
-1. **Ensure all tests pass** by running `pytest`.
-1. **Submit a pull request** with a clear description of your changes.
+Contributions are welcome and greatly appreciated! Please fork the repository, create a new branch for your feature, and submit a pull 
+request with a clear description of your changes.
 
 By contributing, you agree that your submissions will be licensed under the CC0 1.0 Universal license.
 

@@ -1,29 +1,38 @@
 import pytest
-from guid_converter import process_and_convert_guid
+from src.guid_converter import process_and_convert_guid
 
 @pytest.mark.parametrize(
     "test_id, input_guid, expected_short, expected_long",
     [
         (
             "artifact_hyphen",  # Test ID for clear reporting in pytest
-            "OjUoLaQbSJa-\nLY55KONd1nQ",
-            "OjUoLaQbSJaLY55KONd1nQ",
-            "3a35282d-a41b-4896-8b63-9e4a38d7759d"
+            "0nXXpyMbD4Qg- zHiMoFE$Kf",
+            "0nXXpyMbD4QgzHiMoFE$Kf",
+            "{31861cfc-5a53-446a-af51-b16c8f3bf529}"
         ),
         (
-            "artifact_underscore",
-            # This tests that an underscore at a break is removed,
-            # but another legitimate hyphen is preserved.
-            "cixB5W58tU-_\naKxNn4u0Vg",
-            "cixB5W58tU-aKxNn4u0Vg",
-            "722c41e5-6e7c-b54f-be68-ac4d9f8bb456"
+            "hyphen_and_newline",
+            "0Wy67y94v1fhgh-\nSU3mbcgU",
+            "0Wy67y94v1fhghSU3mbcgU",
+            "{20f061fc-244e-41a6-baab-71e0f0966a9e}"
         ),
         (
-            "legitimate_hyphen",
-            # This tests the case where the hyphen at the break is part of the GUID.
-            "qn5yQy-\nFpkqfWJtOCWqM8Q",
-            "qn5yQy-FpkqfWJtOCWqM8Q",
-            "aa7e7243-2f85-a64a-9f58-9b4e096a8cf1"
+            "multiple_artifacts",
+            "3$hGY- wTMb2sQ53dzP$G- jc9\n",
+            "3$hGYwTMb2sQ53dzP$Gjc9",
+            "{ffad08ba-7569-42d9-a143-9fd67f42d989}"
+        ),
+        (
+            "clean_input",
+            "38wYgCHqr1A8vcapxWfUmV",
+            "38wYgCHqr1A8vcapxWfUmV",
+            "{c8ea2a8c-474d-4128-8e66-933ee0a5ec1f}"
+        ),
+         (
+            "whitespace_and_underscore",
+            " 19Z9XKYDT4p8HR0ZbD$wO_ ", # Leading/trailing space
+            "19Z9XKYDT4p8HR0ZbD$wO_",
+            "{498c9854-88d7-44cc-845b-02394dffa63e}"
         )
     ]
 )
@@ -36,34 +45,19 @@ def test_successful_conversions(test_id, input_guid, expected_short, expected_lo
     assert short_guid == expected_short
     assert long_guid == expected_long
 
-def test_corrupt_data_returns_none():
-    """
-    Tests that genuinely corrupt data fails gracefully and returns (None, None).
-    """
-    corrupt_input = "ThisIsJust-\nSomeJunkData"
+@pytest.mark.parametrize(
+    "test_id, corrupt_input",
+    [
+        ("too_short", "2o82$3_1A1"),
+        ("too_long", "2o82$3_1A1-$AvGqgNePPgEXTRA"),
+        ("invalid_chars", "not_a_valid_base64_guid!"),
+        ("empty_string", ""),
+        ("whitespace_only", "  \n\t "),
+        ("none_input", None)
+    ]
+)
+def test_invalid_and_corrupt_data(test_id, corrupt_input):
+    """Tests that corrupt or invalid inputs fail gracefully."""
     short_guid, long_guid = process_and_convert_guid(corrupt_input)
     assert short_guid is None
     assert long_guid is None
-
-@pytest.mark.parametrize(
-    "invalid_input",
-    [
-        "",  # Empty string
-        "single_line_string_no_newline",  # No newline character
-        None  # None value
-    ]
-)
-def test_invalid_inputs_return_none(invalid_input):
-    """
-    Tests that the function handles edge cases like empty, single-line,
-    or None inputs by returning (None, None) as per its contract.
-    """
-    # Note: The function expects a string, but we test None to be robust.
-    # A static type checker would flag this, but it's a good runtime check.
-    if invalid_input is None:
-        with pytest.raises(AttributeError):
-             process_and_convert_guid(invalid_input)
-    else:
-        short_guid, long_guid = process_and_convert_guid(invalid_input)
-        assert short_guid is None
-        assert long_guid is None
