@@ -12,18 +12,24 @@ from .naming_converter import convert_name
 
 def infer_datatype(format_unit: str, value_set: str) -> str:
     """
-    Infers the Revit Shared Parameter DATATYPE from Excel row data.
+    Infers the Revit Shared Parameter DATATYPE from Excel row data by checking
+    against a series of prioritized rules.
     """
     if not isinstance(format_unit, str):
         format_unit = ""
     if not isinstance(value_set, str):
         value_set = ""
 
-    # Rule 1: Yes/No
+    # Rule 1: Yes/No for boolean types
     if "yes no" in value_set.lower().replace(",", ""):
         return "YESNO"
 
-    # Rule 2: Specific Data Types based on Units
+    # Rule 2: TEXT for ranges (e.g., "1E-2 - 1E-2")
+    # This check is for values like temperature ranges that Revit cannot handle natively.
+    if re.search(r"1E[-+]?\d+\s*-\s*1E[-+]?\d+", format_unit, re.IGNORECASE):
+        return "TEXT"
+
+    # Rule 3: Specific Data Types based on Units
     # This list can be expanded with more specific units as needed
     # fmt: off
     unit_map = {
@@ -35,6 +41,8 @@ def infer_datatype(format_unit: str, value_set: str) -> str:
         '°': 'ANGLE',
         '%': 'HVAC_FACTOR',
         'kn': 'FORCE',
+        's': 'TIMEINTERVAL', 'µs': 'TIMEINTERVAL', 'h': 'TIMEINTERVAL',
+        'years': 'INTEGER',
         'va': 'ELECTRICAL_APPARENT_POWER',
         'w': 'ELECTRICAL_POWER',
         'v': 'ELECTRICAL_POTENTIAL', 'kv': 'ELECTRICAL_POTENTIAL', 'mv': 'ELECTRICAL_POTENTIAL',
@@ -45,24 +53,35 @@ def infer_datatype(format_unit: str, value_set: str) -> str:
         'lx': 'ELECTRICAL_ILLUMINANCE',
         'lm/w': 'ELECTRICAL_EFFICACY',
         'k': 'COLOR_TEMPERATURE',
+        'currency': 'CURRENCY',
         'url': 'URL' # Handle URL type
     }
+    # No Revit parameter types for:
+    # Ah Amp hours for battery capacity
+    # Years/Days/Months - time interval is in seconds so could represent days
+    # dBm radio strength
+    # anything acoustic
     # fmt: on
 
     # Sort units by length descending to check for more specific units first (e.g. 'mm2' before 'm')
     sorted_units = sorted(unit_map.keys(), key=len, reverse=True)
 
     # Check for unit matches
+    cleaned_format_unit = format_unit.lower().replace("n.a.", "")
     for unit in sorted_units:
-        if unit in format_unit.lower().replace("n.a.", ""):
+        if unit in cleaned_format_unit:
             return unit_map[unit]
 
-    # Rule 3: Text for enumerated lists
+    # Rule 4: TEXT for enumerated lists (when no unit is specified)
     if format_unit == "n.a." and len(value_set.split(",")) > 1:
         return "TEXT"
 
-    # Rule 4: Number for generic numeric formats
-    if re.search(r"1E[-+]?\d+", format_unit, re.IGNORECASE):
+    # Rule 5: INTEGER for whole numbers
+    if "1e0" in format_unit.lower():
+        return "INTEGER"
+
+    # Rule 6: NUMBER for floating-point numbers
+    if re.search(r"1E[-]\d+", format_unit, re.IGNORECASE):
         return "NUMBER"
 
     # Fallback to TEXT for strings or any other unhandled format
@@ -70,7 +89,9 @@ def infer_datatype(format_unit: str, value_set: str) -> str:
 
 
 def _clean(value: str) -> str:
+    """A helper function to strip whitespace and normalize internal spaces."""
     return re.sub("\s+", " ", value.strip())
+
 
 def format_description(desc: str, value_set: str, examples: str) -> str:
     """
@@ -101,9 +122,9 @@ def format_description(desc: str, value_set: str, examples: str) -> str:
         else:
             # Truncate value set at the last comma that fits
             truncated_values = value_set_str[:available_space]
-            last_comma = truncated_values.rfind(',')
+            last_comma = truncated_values.rfind(",")
             # Ensure at least one full value is included after " i.e. "
-            if last_comma > 5: 
+            if last_comma > 5:
                 final_desc += truncated_values[:last_comma] + "…"
 
     # Attempt to add examples
@@ -114,17 +135,20 @@ def format_description(desc: str, value_set: str, examples: str) -> str:
             final_desc += examples_str
         else:
             # Truncate examples at the last word that fits
-            last_space = len(textwrap.shorten(examples_str, width=available_space, placeholder="…"))
+            last_space = len(
+                textwrap.shorten(examples_str, width=available_space, placeholder="…")
+            )
             if last_space > 5:
-                final_desc += textwrap.shorten(examples_str, width=available_space, placeholder="…")
-
+                # Use textwrap to shorten the example string gracefully at a word boundary
+                final_desc += textwrap.shorten(
+                    examples_str, width=available_space, placeholder="…"
+                )
 
     # Final fallback truncation to ensure the limit is respected
     if len(final_desc) > 254:
         return final_desc[:253] + "…"
 
     return final_desc
-
 
 
 # --- Main Processing Function ---
@@ -181,18 +205,21 @@ def create_shared_parameters_file(
             if pd.isna(row["MS-GUID"]):
                 continue
 
-            # 1. GUID
+            # 1. GUID - Clean braces
             guid = str(row["MS-GUID"]).replace("{", "").replace("}", "")
 
-            # 2. Name
+            # 2. Name - Convert to specified style and add suffix
             param_name = convert_name(row["Name"], name_style) + name_suffix
 
-            # 3. DataType
+            # 3. DataType - Infer from multiple columns
             param_type = infer_datatype(row["Format, Unit"], row["Value set"])
 
-            # 4. Description
-            description = format_description(row['Description'], row['Value set'], row['Examples'])
+            # 4. Description - Format based on rules
+            description = format_description(
+                row["Description"], row["Value set"], row["Examples"]
+            )
 
+            # Construct the tab-delimited parameter line
             param_line = (
                 f"PARAM\t{guid}\t{param_name}\t{param_type}\t\t"
                 f"{group_id}\t1\t{description}\t1\t0"
@@ -203,7 +230,9 @@ def create_shared_parameters_file(
     try:
         print(f"Writing to Shared Parameter file: {output_path}")
         with open(output_path, "w", encoding="utf-16-le") as f:
-            # Header
+            # BOM marker so Revit can read Unicode characters
+            f.write(u"\ufeff")
+            # Standard Revit SP file header
             f.write("# This is a Revit shared parameter file.\n")
             f.write("# Do not edit manually.\n")
             f.write("*META\tVERSION\tMINVERSION\n")

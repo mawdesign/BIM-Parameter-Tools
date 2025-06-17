@@ -40,20 +40,21 @@ We welcome contributions to help build out the following tools:
 
 ### Installation
 1. **Clone the repository:**
-```bash
-git clone https://github.com/your-username/bim-parameter-tools.git
-cd bim-parameter-tools
-```
+    ```bash
+    git clone https://github.com/your-username/bim-parameter-tools.git
+    cd bim-parameter-tools
+    ```
 1. **Set up a virtual environment** (recommended):
-This creates an isolated environment for the project's dependencies.
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-```
+
+    This creates an isolated environment for the project's dependencies.
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+    ```
 1. **Install the required packages:**
-```bash
-pip install -r requirements.txt
-```
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 ## Usage
 The tools are designed to be run as a two-step process from your command line.
