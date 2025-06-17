@@ -16,18 +16,21 @@ improving data consistency for BIM managers, coordinators, and developers.
     hexadecimal GUID format required for Revit Shared Parameter files.
   * Automatically handles formatting artifacts, such as hyphens or carriage returns inserted by document software during line wrapping.
 * **Excel GUID Processor:**
-  *A command-line tool that reads an Excel file, processes a "GUID" column in each sheet, and creates a new file with "IFC-GUID" 
+  * A command-line tool (`excel_guid_processor.py`) that reads an Excel file, processes a "GUID" column in each sheet, and creates a new file with "IFC-GUID" 
     and "MS-GUID" columns. Items in the "Name" column have inline carriage returns removed. All other data is preserved.
+  * Performs analysis on parameter names, warning about improper capitalization while preserving abbreviations.
+  * Can convert parameter names to various standard conventions (`pascal`, `camel`, `snake`, etc.).
+* **Excel to Revit Shared Parameter File Generator:**
+  * A command-line tool (`excel_to_shared_params.py`) that converts a cleaned Excel file directly into a Revit Shared Parameter `.txt` file.
+  * Intelligently infers Revit data types (e.g., `LENGTH`, `AREA`, `YESNO`) from the source data.
+  * Generates well-formatted parameter descriptions, automatically handling length limits and examples.
 
 ### Planned Features (Roadmap)
 We welcome contributions to help build out the following tools:
 
 * [ ] **Long GUID to Short GUID Converter:** A tool to batch perform the reverse conversion, from a standard Revit GUID to a compressed
       IFC-style GUID.
-* [ ] **Excel to Revit Shared Parameter File Generator:** A script to convert a standardized Excel template of parameter definitions
-      into a valid Revit Shared Parameter .txt file.
-* [ ] **Parameter Naming Convention Converter:** A flexible tool to batch-convert parameter names between common conventions (e.g.,
-      `Title Case` to `snake_case` or `camelCase`) and manage prefixes and suffixes.
+* [ ] **Comprehensive Test Suite:** Expand tests to cover more edge cases for all scripts.
 * [ ] **Parameter Language Translator:** A utility to facilitate translating parameter names between different languages using a
       predefined translation map or service.
 
@@ -42,31 +45,46 @@ git clone https://github.com/your-username/bim-parameter-tools.git
 cd bim-parameter-tools
 ```
 1. **Set up a virtual environment** (recommended):
+This creates an isolated environment for the project's dependencies.
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
 ```
 1. **Install the required packages:**
-The project has minimal dependencies. Currently the only package needed is `pytest` for running the tests.
 ```bash
 pip install -r requirements.txt
 ```
 
 ## Usage
+The tools are designed to be run as a two-step process from your command line.
+
 1. **Excel GUID Processor (Command Line)**
-This is the easiest way to process a full Excel file. Open your terminal, navigate to the project directory, and run the script with your 
-input and (optionally) output file paths.
 
-### Command:
-```bash
-python excel_guid_processor.py "path/to/your/input.xlsx" "path/for/your/output.xlsx"
-```
+    This is the easiest way to process a full Excel file. Open your terminal, navigate to the project directory, and run the script with your 
+    input file path and (optionally) output file path and/or naming convention to use.
 
-The script will process every sheet in the input file that contains a "GUID" column and save a new, processed file to the output path.
+    **Command:**
+    ```bash
+    python excel_guid_processor.py "path/to/your/input.xlsx" "path/for/your/output.xlsx" -n pascal
+    ```
+
+    The script will process every sheet in the input file that contains a "GUID" column and save a new, processed file to the output path.
+
+1. **Generate the Revit Shared Parameter File (Command Line)**
+
+    Next, use the cleaned file from Step 1 as the input for `excel_to_shared_params.py` to generate the final `.txt` file.
+
+    **Command:**
+    ```bash
+    python -m src.excel_to_shared_params "path/to/cleaned_file.xlsx" -o "path/to/output_params.txt" --suffix "_ISO"
+    ```
+
 
 1. **GUID Converter (for scripting)**
-The primary function for GUID conversion is `process_and_convert_guid` located in the `guid_converter.py` 
-script. It is designed to handle short GUIDs that have been split across two lines in a document.
+
+    The primary function for GUID conversion is `process_and_convert_guid` located in the `guid_converter.py` 
+    script. It is designed to expand compressed IFC format GUIDs, including those that have been split across two lines in a document. It will
+    output standard MS format long GUIDs.
 
 ### Example:
 ```python
@@ -87,16 +105,25 @@ else:
 
 # Expected Output:
 # Corrected Short GUID: OjUoLaQbSJaLY55KONd1nQ
-# Expanded Long GUID:   3a35282d-a41b-4896-8b63-9e4a38d7759d
+# Expanded Long GUID:   {3a35282d-a41b-4896-8b63-9e4a38d7759d}
 ```
 
 ## Testing
 The project includes a test suite to ensure the reliability of the tools. To run the tests, navigate 
 to the root directory of the project and run `pytest`.
 ```bash
-pytest
+python -m pytest
 ```
 You should see a report indicating that all tests have passed.
+
+The test suite includes an end-to-end workflow test (test_end_to_end.py) that:
+
+1. Programmatically creates a sample Excel file with a variety of test cases.
+1. Runs the `excel_guid_processor.py` script to produce a cleaned file.
+1. Runs the `excel_to_shared_params.py` script to produce the final `.txt` file.
+1. Asserts that the contents of the final file are correct.
+
+This provides a high degree of confidence that the entire toolchain is working as expected.
 
 ## Contributing
 Contributions are welcome and greatly appreciated! Please fork the repository, create a new branch for your feature, and submit a pull 

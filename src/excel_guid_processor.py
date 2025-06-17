@@ -3,52 +3,61 @@ import argparse
 import os
 import re
 from .guid_converter import process_and_convert_guid
+from .naming_converter import convert_name
 
 
 def analyze_name_column(df: pd.DataFrame, sheet_name: str):
     """Analyzes the 'Name' column for naming convention issues and prints warnings."""
     print(f"    - Analyzing 'Name' column for sheet '{sheet_name}'...")
-    name_col = df['Name']
+    if "Name" not in df.columns:
+        return
+
+    name_col = df["Name"]
     # Check if an 'ID' column exists to use for logging
-    has_id_column = 'ID' in df.columns
+    has_id_column = "ID" in df.columns
 
     for index, name in name_col.dropna().items():
         if not isinstance(name, str):
             continue
 
         # Determine the identifier for the row (ID value or Row number)
-        if has_id_column:
-            identifier = df.loc[index, 'ID']
-            identifier_str = f"ID: {identifier}"
-        else:
-            identifier_str = f"Row {index + 2}"
-        
+        identifier_str = (
+            f"ID: {df.loc[index, 'ID']}" if has_id_column else f"Row {index + 2}"
+        )
+
         # Find words that are likely capitalized abbreviations (e.g., IFC, HVAC)
-        abbreviations = re.findall(r'\b[A-Z]{2,}\b', name)
+        abbreviations = re.findall(r"\b[A-Z]{2,}\b", name)
         if abbreviations:
-            print(f"      - Info: Found potential abbreviation(s) {abbreviations} in '{name}' ({identifier_str})")
-            
+            print(
+                f"      - Info: Found potential abbreviation(s) {abbreviations} in '{name}' ({identifier_str})"
+            )
+
         # Find words with improper capitalization (e.g., 'TitleCase')
-        improper_caps = re.findall(r'\b[A-Z][a-z]+\b', name)
+        improper_caps = re.findall(r"\b[A-Z][a-z]+\b", name)
         if improper_caps:
-             print(f"      - Warning: Found improper capitalization in '{name}' ({identifier_str}). Words: {improper_caps}")
+            print(
+                f"      - Warning: Found improper capitalization in '{name}' ({identifier_str}). Words: {improper_caps}"
+            )
 
 
 def clean_name_column(name_series: pd.Series) -> pd.Series:
     """Cleans the 'Name' column by handling multi-line entries."""
+
     def clean_name(name):
         if not isinstance(name, str):
             return name
         # First, remove hyphens followed by a newline
-        name = re.sub(r'-\n', '', name)
+        name = re.sub(r"-\n", "", name)
         # Then, replace any remaining newlines with a space
-        name = name.replace('\n', ' ')
+        name = name.replace("\n", " ")
         return name
-        
+
     return name_series.apply(clean_name)
 
 
-def process_excel_file(input_path: str, output_path: str):
+def process_excel_file(
+    input_path: str, output_path: str, name_style: str | None = None
+):
     """
     Opens an Excel file, processes GUIDs in each sheet, and saves a new file.
 
@@ -76,10 +85,14 @@ def process_excel_file(input_path: str, output_path: str):
             df = pd.read_excel(input_xls, sheet_name=sheet_name)
 
             # --- Name Column Processing (Analyze first, then clean) ---
-            if 'Name' in df.columns:
+            if "Name" in df.columns:
                 analyze_name_column(df, sheet_name)
-                df['Name'] = clean_name_column(df['Name'])
+                df["Name"] = clean_name_column(df["Name"])
                 print("    - Cleaned 'Name' column.")
+
+                if name_style:
+                    df["Name"] = df["Name"].apply(lambda x: convert_name(x, name_style))
+                    print(f"    - Converted 'Name' column to '{name_style}' style.")
 
             # --- GUID Column Processing ---
             if "GUID" not in df.columns:
@@ -108,16 +121,16 @@ def process_excel_file(input_path: str, output_path: str):
 
             # --- Reorder and Finalize Columns ---
             # Drop the original GUID column
-            df.drop(columns=['GUID'], inplace=True)
+            df.drop(columns=["GUID"], inplace=True, errors="ignore")
 
             # Create the desired column order
             existing_cols = df.columns.tolist()
             # Remove the new GUID columns to append them at the front
-            for col in ['IFC-GUID', 'MS-GUID']:
+            for col in ["IFC-GUID", "MS-GUID"]:
                 if col in existing_cols:
                     existing_cols.remove(col)
 
-            final_col_order = ['IFC-GUID', 'MS-GUID'] + existing_cols
+            final_col_order = ["IFC-GUID", "MS-GUID"] + existing_cols
             df = df[final_col_order]
 
             # Write the modified DataFrame to the new Excel file
@@ -136,6 +149,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "input_file",
         help="The path to the source Excel file (.xlsx).",
+    )
+    parser.add_argument(
+        "-n",
+        "--convert-names",
+        help="Convert the 'Name' column to a specified style.",
+        choices=[
+            "title",
+            "capitalise",
+            "camel",
+            "pascal",
+            "snake",
+            "pascal_snake",
+            "allcaps",
+        ],
+        default=None,
     )
     parser.add_argument(
         "-o",
@@ -185,6 +213,6 @@ if __name__ == "__main__":
 
     # Process the file
     try:
-        process_excel_file(args.input_file, output_path)
+        process_excel_file(args.input_file, output_path, name_style=args.convert_names)
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
