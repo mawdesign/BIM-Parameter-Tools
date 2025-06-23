@@ -1,0 +1,6 @@
+title: "Enumerate\nSpecs"
+tooltip: "Exports a complete list of Revit's ForgeTypeId specifications to a JSON file."
+help_url: "https://github.com/mawdesign/BIM-Parameter-Tools"
+author: MAW
+context: zero-doc
+min_revit_version: 2021
