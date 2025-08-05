@@ -1,0 +1,173 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="BIM Parameter Tools" Height="500" Width="850"
+        WindowStartupLocation="CenterScreen" MinHeight="480" MinWidth="800"
+        Background="#FF2D2D30" Foreground="White">
+
+    <Window.Resources>
+        <!-- Custom Style for Tab Items to improve readability and appearance -->
+        <Style TargetType="TabItem">
+            <!-- Set default properties for all tab headers -->
+            <Setter Property="Background" Value="#FF3F3F46"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border Name="Border" BorderThickness="0" BorderBrush="Transparent" 
+                                Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                            <ContentPresenter x:Name="ContentSite"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Center"
+                                              ContentSource="Header"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <!-- Define triggers to change appearance based on state -->
+            <Style.Triggers>
+                <!-- Trigger for when the tab is selected -->
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#FF007ACC"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </Trigger>
+                <!-- Correct way to handle multiple conditions: MultiTrigger -->
+                <MultiTrigger>
+                    <MultiTrigger.Conditions>
+                        <Condition Property="IsSelected" Value="False" />
+                        <Condition Property="IsMouseOver" Value="True" />
+                    </MultiTrigger.Conditions>
+                    <Setter Property="Background" Value="#FF555555"/>
+                </MultiTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Custom Style for GroupBox to achieve a modern, dark-theme look -->
+        <Style TargetType="{x:Type GroupBox}">
+            <Setter Property="BorderBrush" Value="#FF555555" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type GroupBox}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <!-- Header Text -->
+                            <Label Content="{TemplateBinding Header}" 
+                                   FontWeight="Bold" 
+                                   Foreground="White"
+                                   Margin="3,0,0,5"/>
+                            <!-- Content area with a continuous border -->
+                            <Border Grid.Row="1" 
+                                    BorderBrush="{TemplateBinding BorderBrush}" 
+                                    BorderThickness="1" 
+                                    CornerRadius="3"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter />
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- Main Grid: Divides the window into the main tool area and the history/actions area -->
+    <Grid Margin="15">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2.5*" /> <!-- Area for the tabs -->
+            <ColumnDefinition Width="1*" />  <!-- Area for History and Buttons -->
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Panel: Contains the TabControl for different tools -->
+        <TabControl Grid.Column="0" Margin="0,0,15,0" Background="Transparent" BorderBrush="#FF555555">
+            <!-- Unit Conversion Tab -->
+            <TabItem Header="Unit Conversion">
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- FROM Panel (within the tab) -->
+                    <GroupBox Grid.Column="0" Header="FROM" Margin="5" Padding="10" Foreground="White" BorderBrush="#FF555555">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0">
+                                <TextBlock Text="Value to Convert:" Margin="0,0,0,5" Foreground="#FFAAAAAA"/>
+                                <TextBox x:Name="InputValueTextBox" Padding="5" 
+                                         Background="#FF3F3F46" Foreground="White" BorderBrush="#FF555555" />
+                                <TextBlock Text="From Unit:" Margin="0,10,0,0" Foreground="#FFAAAAAA"/>
+                                <ComboBox x:Name="FromUnitComboBox" IsEditable="True" Padding="5"
+                                          Background="#FF3F3F46" BorderBrush="#FF555555"/>
+                            </StackPanel>
+                            <TreeView Grid.Row="1" Margin="0,0,0,0" x:Name="InputTreeView" Background="#FF3F3F46" Foreground="White" BorderBrush="#FF555555">
+                                <!-- TreeViewItems will be populated from your JSON file -->
+                            </TreeView>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- TO Panel (within the tab) -->
+                    <GroupBox Grid.Column="1" Header="TO" Margin="5" Padding="10" Foreground="White" BorderBrush="#FF555555">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0">
+                                <TextBlock Text="Converted Value:" Margin="0,0,0,5" Foreground="#FFAAAAAA"/>
+                                <TextBox x:Name="OutputValueTextBox" Padding="5" IsReadOnly="True" 
+                                         Background="#FF3F3F46" Foreground="White" BorderBrush="#FF555555" />
+                                <TextBlock Text="To Unit:" Margin="0,10,0,0" Foreground="#FFAAAAAA"/>
+                                <!-- ComboBox x:Name="ToUnitComboBox" IsEditable="True" Padding="5"
+                                       Background="#FF3F3F46" BorderBrush="#FF555555"/-->
+                            </StackPanel>
+                            <TreeView Grid.Row="1" Margin="0,0,0,0" x:Name="OutputTreeView" Background="#FF3F3F46" Foreground="White" BorderBrush="#FF555555">
+                                <!-- TreeViewItems will be populated from your JSON file -->
+                            </TreeView>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+            
+            <!-- Scaling Tool Tab -->
+            <TabItem Header="Scaling Tool">
+                <Grid Margin="10">
+                    <!-- Placeholder content for the scaling tool -->
+                    <TextBox Text="Scaling Tool UI will go here." 
+                             VerticalAlignment="Center" HorizontalAlignment="Center"
+                             Background="Transparent" BorderThickness="0" Foreground="#FFAAAAAA"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- Right Panel: Contains the shared History and main action buttons -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- History Panel -->
+            <GroupBox Grid.Row="0" Header="HISTORY" Margin="5" Padding="10" Foreground="White" BorderBrush="#FF555555">
+                <TextBox x:Name="HistoryTextBox" Padding="5" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                         Background="#FF3F3F46" Foreground="White" BorderBrush="#FF555555" />
+            </GroupBox>
+
+            <!-- Action Buttons -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,5,0">
+                <Button x:Name="ConvertButton" Content="Convert" Padding="20,8" Margin="0,0,10,0" 
+                        Background="#FF007ACC" Foreground="White" BorderBrush="#FF007ACC" FontWeight="Bold"/>
+                <Button x:Name="CloseButton" Content="Close" Padding="20,8"
+                        Background="#FF555555" Foreground="White" BorderBrush="#FF555555"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

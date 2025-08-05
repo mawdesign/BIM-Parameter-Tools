@@ -12,17 +12,10 @@ be used as a foundational mapping table for unit and data type conversions
 between different standards (e.g., ISO, IFC, Autodesk).
 """
 # ------------------------------------------------------------------------------
-# Preamble
-# ------------------------------------------------------------------------------
-__title__ = "Enumerate Specs"
-__author__ = "MAW"
-__doc__ = "Exports a complete list of Revit's ForgeTypeId specifications to a JSON file."
-
-# ------------------------------------------------------------------------------
 # Imports
 # ------------------------------------------------------------------------------
 # Import necessary components from the shared library
-from revit_unit_lib import get_revit_specs, get_revit_units
+from revit_unit_lib import get_revit_specs, get_revit_units, create_reverse_unit_lookup
 
 # Import pyRevit forms for user interaction (file save dialog)
 from pyrevit import forms, script, HOST_APP
@@ -32,10 +25,12 @@ import json
 import os
 import io
 from datetime import datetime
+from collections import OrderedDict
 
 # ------------------------------------------------------------------------------
 # Main Script Logic
 # ------------------------------------------------------------------------------
+
 
 def main():
     """
@@ -60,24 +55,33 @@ def main():
     try:
         specs_data = get_revit_specs()
         units_data = get_revit_units()
+        reverse_lookup_data = create_reverse_unit_lookup(specs_data, units_data)
     except Exception as e:
-        forms.alert("Failed to gather data from Revit API.\nError: {}".format(e), exitscript=True)
+        forms.alert(
+            "Failed to gather data from Revit API.\nError: {}".format(e),
+            exitscript=True,
+        )
         return
 
-    # 4. Prepare the final output dictionary, including metadata.
+    # 4. Sort the top-level keys of the reverse lookup for a clean, deterministic output file.
+    # We use an OrderedDict to guarantee the key order is preserved by json.dumps.
+    sorted_reverse_lookup = OrderedDict(sorted(reverse_lookup_data.items()))
+
+    # 5. Prepare the final output dictionary, including metadata.
     output_data = {
         "meta": {
             "retrieval_date": datetime.now().isoformat(),
             "revit_version": HOST_APP.version,
             "revit_version_name": HOST_APP.version_name,
             "revit_build": HOST_APP.app.VersionBuild,
-            "comment": "This file contains a normalized map of specifications and units as enumerated from the Revit API."
+            "comment": "This file contains a normalized map of specifications and units as enumerated from the Revit API.",
         },
         "specs": specs_data,
-        "units": units_data
+        "units": units_data,
+        "symbol_lookup": sorted_reverse_lookup,
     }
 
-    # 5. Write the collected data to the selected JSON file.
+    # 6. Write the collected data to the selected JSON file.
     try:
         with io.open(save_path, "w", encoding="utf-8") as json_file:
             # json.dump writes the Python dictionary to the file.
@@ -88,22 +92,26 @@ def main():
 
         logger.debug("Successfully wrote data to: {}".format(save_path))
 
-        # 6. Inform the user that the process is complete.
+        # 7. Inform the user that the process is complete.
         forms.alert(
-            "Successfully exported {} specifications and {} unique units to:\n\n{}".format(
+            "Successfully exported {} specifications, {} unique units, and a reverse index for {} symbols to:\n\n{}".format(
                 len(specs_data),
                 len(units_data),
-                os.path.basename(save_path)
+                len(sorted_reverse_lookup),
+                os.path.basename(save_path),
             ),
-            title="Export Complete"
+            title="Export Complete",
         )
     except IOError as e:
         # If the file can't be written (e.g., permissions issue), inform the user.
         logger.warning("Error writing to file: {}".format(e))
         forms.alert(
-            "Could not save the file to the selected path.\n\nPlease check file permissions.\nError: {}".format(e),
-            title="File Write Error"
+            "Could not save the file to the selected path.\n\nPlease check file permissions.\nError: {}".format(
+                e
+            ),
+            title="File Write Error",
         )
+
 
 # ------------------------------------------------------------------------------
 # Script Execution
