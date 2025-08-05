@@ -74,7 +74,37 @@
                 </Setter.Value>
             </Setter>
         </Style>
-    </Window.Resources>
+
+		<!-- Styles for the TreeViews -->
+
+		<!-- Styles for other controls -->
+		<Style TargetType="TextBlock">
+			<Setter Property="Margin" Value="0,0,0,5"/>
+			<Setter Property="Foreground" Value="#FFAAAAAA"/>
+		</Style>
+		<Style TargetType="TextBox">
+			<Setter Property="Padding" Value="5"/>
+			<Setter Property="Background" Value="#FF3F3F46"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="BorderBrush" Value="#FF555555"/>
+		</Style>
+		<Style TargetType="Label">
+			<Setter Property="Foreground" Value="#FFAAAAAA"/>
+		</Style>
+		<Style TargetType="Button">
+			<Setter Property="Padding" Value="20,8"/>
+			<Setter Property="Background" Value="#FF007ACC"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="BorderBrush" Value="#FF007ACC"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+		</Style>
+		<Style x:Key="{x:Type ComboBoxItem}" TargetType="{x:Type ComboBoxItem}">
+			<Setter Property="Foreground" Value="#FF007ACC"/>
+		</Style>
+		<Style x:Key="{x:Type TreeViewItem}" TargetType="{x:Type TreeViewItem}">
+			<Setter Property="Foreground" Value="#FFA0A0A0"/>
+		</Style>
+	</Window.Resources>
 
     <!-- Main Grid: Divides the window into the main tool area and the history/actions area -->
     <Grid Margin="15">
@@ -101,12 +131,10 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <StackPanel Grid.Row="0">
-                                <TextBlock Text="Value to Convert:" Margin="0,0,0,5" Foreground="#FFAAAAAA"/>
-                                <TextBox x:Name="InputValueTextBox" Padding="5" 
-                                         Background="#FF3F3F46" Foreground="White" BorderBrush="#FF555555" />
-                                <TextBlock Text="From Unit:" Margin="0,10,0,0" Foreground="#FFAAAAAA"/>
-                                <ComboBox x:Name="FromUnitComboBox" IsEditable="True" Padding="5"
-                                          Background="#FF3F3F46" BorderBrush="#FF555555"/>
+                                <TextBlock Text="Value to Convert:"/>
+                                <TextBox x:Name="InputValueTextBox" Padding="5"/>
+                                <TextBlock Text="From Unit:" Margin="0,10,0,0"/>
+                                <ComboBox x:Name="FromUnitComboBox" IsEditable="True"/>
                             </StackPanel>
                             <TreeView Grid.Row="1" Margin="0,0,0,0" x:Name="InputTreeView" Background="#FF3F3F46" Foreground="White" BorderBrush="#FF555555">
                                 <!-- TreeViewItems will be populated from your JSON file -->
@@ -122,12 +150,9 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <StackPanel Grid.Row="0">
-                                <TextBlock Text="Converted Value:" Margin="0,0,0,5" Foreground="#FFAAAAAA"/>
-                                <TextBox x:Name="OutputValueTextBox" Padding="5" IsReadOnly="True" 
-                                         Background="#FF3F3F46" Foreground="White" BorderBrush="#FF555555" />
-                                <TextBlock Text="To Unit:" Margin="0,10,0,0" Foreground="#FFAAAAAA"/>
-                                <!-- ComboBox x:Name="ToUnitComboBox" IsEditable="True" Padding="5"
-                                       Background="#FF3F3F46" BorderBrush="#FF555555"/-->
+                                <TextBlock Text="Converted Value:"/>
+                                <TextBox x:Name="OutputValueTextBox" IsReadOnly="True"/>
+                                <TextBlock Text="To Unit:" Margin="0,10,0,0"/>
                             </StackPanel>
                             <TreeView Grid.Row="1" Margin="0,0,0,0" x:Name="OutputTreeView" Background="#FF3F3F46" Foreground="White" BorderBrush="#FF555555">
                                 <!-- TreeViewItems will be populated from your JSON file -->
@@ -139,14 +164,75 @@
             
             <!-- Scaling Tool Tab -->
             <TabItem Header="Scaling Tool">
-                <Grid Margin="10">
-                    <!-- Placeholder content for the scaling tool -->
-                    <TextBox Text="Scaling Tool UI will go here." 
-                             VerticalAlignment="Center" HorizontalAlignment="Center"
-                             Background="Transparent" BorderThickness="0" Foreground="#FFAAAAAA"/>
-                </Grid>
+                <StackPanel Margin="5">
+                    <!-- 
+                    SECTION 1: CALIBRATION
+                    The user enters a known measurement from the plan and the corresponding real-world dimension.
+                    Clicking "Set Scale" calculates the scale factor for use in the conversion section.
+                    -->
+                    <GroupBox Header="1. CALIBRATION" Margin="0,0,0,5" Padding="5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Plan Measurement Row -->
+                            <Label Grid.Row="0" Grid.Column="0" Content="Plan Measurement:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="CalibPlanMeasurementValue" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="0" Grid.Column="2" x:Name="CalibPlanMeasurementUnit" MinWidth="60" Margin="5" VerticalAlignment="Center"/>
+
+                            <!-- Actual Dimension Row -->
+                            <Label Grid.Row="1" Grid.Column="0" Content="Actual Dimension:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="CalibActualDimensionValue" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="1" Grid.Column="2" x:Name="CalibActualDimensionUnit" MinWidth="60" Margin="5" VerticalAlignment="Center"/>
+
+                            <!-- Set Scale Button and Label Row -->
+							<TextBlock Grid.Row="2" Grid.Column="1" x:Name="ScaleRatioLabel" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="18" FontWeight="Normal">
+								Scale: <Bold><Italic>Not set</Italic></Bold>
+							</TextBlock>
+							<Button Grid.Row="2" Grid.Column="2" x:Name="SetScaleButton" Content="Set" Padding="10,2"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- 
+                    SECTION 2: CONVERSION
+                    Once the scale is set, the user can enter measurements from the plan to get the scaled real-world dimension.
+                    The result can be added to the history list.
+                    -->
+                    <GroupBox Header="2. CONVERSION" Margin="0,5,0,5" Padding="5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Plan Measurement to Convert Row -->
+                            <Label Grid.Row="0" Grid.Column="0" Content="Plan Measurement:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="ConvertPlanMeasurementValue" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="0" Grid.Column="2" x:Name="ConvertPlanMeasurementUnit" MinWidth="60" Margin="5" VerticalAlignment="Center"/>
+
+                            <!-- Actual Dimension Result Row -->
+                            <Label Grid.Row="1" Grid.Column="0" Content="Actual Dimension:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="ConvertActualDimensionValue" VerticalAlignment="Center" IsReadOnly="True"/>
+                            <ComboBox Grid.Row="1" Grid.Column="2" x:Name="ConvertActualDimensionUnit" MinWidth="60" Margin="5" VerticalAlignment="Center"/>
+
+                        </Grid>
+                    </GroupBox>
+                </StackPanel>
             </TabItem>
-        </TabControl>
+		</TabControl>
 
         <!-- Right Panel: Contains the shared History and main action buttons -->
         <Grid Grid.Column="1">
